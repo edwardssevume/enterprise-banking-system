@@ -101,8 +101,16 @@ public class AuthService {
                         authenticationRequest
                 );
 
-        String accessToken =
-                jwtService.generateToken(authentication);
+        User authenticatedUser = userRepository
+                .findByUsername(authentication.getName())
+                .orElseThrow(() -> new IllegalStateException(
+                        "Authenticated user no longer exists"
+                ));
+
+        String accessToken = jwtService.generateToken(
+                authentication,
+                authenticatedUser.getId()
+        );
 
         List<String> roles = authentication
                 .getAuthorities()

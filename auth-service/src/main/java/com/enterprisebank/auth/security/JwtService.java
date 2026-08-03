@@ -36,7 +36,10 @@ public class JwtService {
         this.issuer = issuer;
     }
 
-    public String generateToken(Authentication authentication) {
+    public String generateToken(
+            Authentication authentication,
+            Long userId
+    ) {
 
         Instant issuedAt = Instant.now();
 
@@ -56,6 +59,7 @@ public class JwtService {
                 .issuedAt(issuedAt)
                 .expiresAt(expiresAt)
                 .id(UUID.randomUUID().toString())
+                .claim("userId", userId)
                 .claim("roles", roles)
                 .build();
 
