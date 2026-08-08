@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
@@ -33,15 +34,16 @@ public class TransactionService {
     public TransactionResponse deposit(
             DepositRequest request,
             String idempotencyKey,
-            Long userId,
-            String authorizationHeader
+            Long userId
     ) {
+
         TransactionResponse existing =
-                findExistingCompletedTransaction(idempotencyKey);
+                findExistingTransaction(idempotencyKey);
 
         if (existing != null) {
             return existing;
         }
+
         BankTransaction transaction = beginTransaction(
                 idempotencyKey,
                 TransactionType.DEPOSIT,
@@ -55,16 +57,21 @@ public class TransactionService {
         );
 
         try {
+
             accountServiceClient.credit(
                     request.getAccountId(),
-                    createBalanceRequest(transaction),
-                    authorizationHeader
+                    createBalanceRequest(transaction)
             );
 
             return completeTransaction(transaction);
 
         } catch (RuntimeException exception) {
-            failTransaction(transaction, exception.getMessage());
+
+            failTransaction(
+                    transaction,
+                    exception.getMessage()
+            );
+
             throw exception;
         }
     }
@@ -72,15 +79,16 @@ public class TransactionService {
     public TransactionResponse withdrawal(
             WithdrawalRequest request,
             String idempotencyKey,
-            Long userId,
-            String authorizationHeader
+            Long userId
     ) {
+
         TransactionResponse existing =
-                findExistingCompletedTransaction(idempotencyKey);
+                findExistingTransaction(idempotencyKey);
 
         if (existing != null) {
             return existing;
         }
+
         BankTransaction transaction = beginTransaction(
                 idempotencyKey,
                 TransactionType.WITHDRAWAL,
@@ -94,16 +102,21 @@ public class TransactionService {
         );
 
         try {
+
             accountServiceClient.debit(
                     request.getAccountId(),
-                    createBalanceRequest(transaction),
-                    authorizationHeader
+                    createBalanceRequest(transaction)
             );
 
             return completeTransaction(transaction);
 
         } catch (RuntimeException exception) {
-            failTransaction(transaction, exception.getMessage());
+
+            failTransaction(
+                    transaction,
+                    exception.getMessage()
+            );
+
             throw exception;
         }
     }
@@ -111,21 +124,21 @@ public class TransactionService {
     public TransactionResponse transfer(
             TransferRequest request,
             String idempotencyKey,
-            Long userId,
-            String authorizationHeader
+            Long userId
     ) {
+
         TransactionResponse existing =
-                findExistingCompletedTransaction(idempotencyKey);
+                findExistingTransaction(idempotencyKey);
 
         if (existing != null) {
             return existing;
         }
+
         if (request.getSourceAccountId().equals(
                 request.getDestinationAccountId()
         )) {
             throw new InvalidTransactionException(
-                    "Source and destination accounts "
-                            + "must be different"
+                    "Source and destination accounts must be different"
             );
         }
 
@@ -142,32 +155,34 @@ public class TransactionService {
         );
 
         try {
+
             BalanceOperationRequest balanceRequest =
                     createBalanceRequest(transaction);
 
+            // Debit source account
             accountServiceClient.debit(
                     request.getSourceAccountId(),
-                    balanceRequest,
-                    authorizationHeader
+                    balanceRequest
             );
 
             try {
+
+                // Credit destination account
                 accountServiceClient.credit(
                         request.getDestinationAccountId(),
-                        balanceRequest,
-                        authorizationHeader
+                        balanceRequest
                 );
 
             } catch (RuntimeException creditException) {
+
                 /*
                  * Compensation:
-                 * Return the amount to the source account when
-                 * destination crediting fails.
+                 * If destination credit fails after source debit,
+                 * credit the source account back.
                  */
                 accountServiceClient.credit(
                         request.getSourceAccountId(),
-                        balanceRequest,
-                        authorizationHeader
+                        balanceRequest
                 );
 
                 throw creditException;
@@ -176,7 +191,12 @@ public class TransactionService {
             return completeTransaction(transaction);
 
         } catch (RuntimeException exception) {
-            failTransaction(transaction, exception.getMessage());
+
+            failTransaction(
+                    transaction,
+                    exception.getMessage()
+            );
+
             throw exception;
         }
     }
@@ -185,16 +205,18 @@ public class TransactionService {
     public TransactionResponse getByReference(
             String transactionReference
     ) {
-        BankTransaction transaction = transactionRepository
-                .findByTransactionReference(
-                        transactionReference
-                )
-                .orElseThrow(() ->
-                        new TransactionNotFoundException(
-                                "Transaction not found: "
-                                        + transactionReference
+
+        BankTransaction transaction =
+                transactionRepository
+                        .findByTransactionReference(
+                                transactionReference
                         )
-                );
+                        .orElseThrow(() ->
+                                new TransactionNotFoundException(
+                                        "Transaction not found: "
+                                                + transactionReference
+                                )
+                        );
 
         return mapToResponse(transaction);
     }
@@ -203,6 +225,7 @@ public class TransactionService {
     public List<TransactionResponse> getMyTransactions(
             Long userId
     ) {
+
         return transactionRepository
                 .findByInitiatedByUserIdOrderByCreatedAtDesc(
                         userId
@@ -219,20 +242,24 @@ public class TransactionService {
             TransactionDirection direction,
             Long sourceAccountId,
             Long destinationAccountId,
-            java.math.BigDecimal amount,
+            BigDecimal amount,
             String currency,
             String description,
             Long userId
     ) {
+
         return transactionRepository
                 .findByIdempotencyKey(idempotencyKey)
                 .orElseGet(() -> {
+
                     BankTransaction transaction =
                             BankTransaction.builder()
                                     .transactionReference(
                                             generateReference()
                                     )
-                                    .idempotencyKey(idempotencyKey)
+                                    .idempotencyKey(
+                                            idempotencyKey
+                                    )
                                     .transactionType(type)
                                     .status(
                                             TransactionStatus.PROCESSING
@@ -246,7 +273,8 @@ public class TransactionService {
                                     )
                                     .amount(amount)
                                     .currency(
-                                            currency.trim()
+                                            currency
+                                                    .trim()
                                                     .toUpperCase(
                                                             Locale.ROOT
                                                     )
@@ -269,13 +297,23 @@ public class TransactionService {
     protected TransactionResponse completeTransaction(
             BankTransaction transaction
     ) {
-        transaction.setStatus(TransactionStatus.COMPLETED);
-        transaction.setFailureReason(null);
-        transaction.setCompletedAt(LocalDateTime.now());
 
-        return mapToResponse(
-                transactionRepository.save(transaction)
+        transaction.setStatus(
+                TransactionStatus.COMPLETED
         );
+
+        transaction.setFailureReason(null);
+
+        transaction.setCompletedAt(
+                LocalDateTime.now()
+        );
+
+        BankTransaction savedTransaction =
+                transactionRepository.save(
+                        transaction
+                );
+
+        return mapToResponse(savedTransaction);
     }
 
     @Transactional
@@ -283,17 +321,34 @@ public class TransactionService {
             BankTransaction transaction,
             String reason
     ) {
-        transaction.setStatus(TransactionStatus.FAILED);
+
+        transaction.setStatus(
+                TransactionStatus.FAILED
+        );
+
         transaction.setFailureReason(
                 limitFailureReason(reason)
         );
 
-        transactionRepository.save(transaction);
+        transactionRepository.save(
+                transaction
+        );
+    }
+
+    private TransactionResponse findExistingTransaction(
+            String idempotencyKey
+    ) {
+
+        return transactionRepository
+                .findByIdempotencyKey(idempotencyKey)
+                .map(this::mapToResponse)
+                .orElse(null);
     }
 
     private BalanceOperationRequest createBalanceRequest(
             BankTransaction transaction
     ) {
+
         return new BalanceOperationRequest(
                 transaction.getAmount(),
                 transaction.getCurrency(),
@@ -302,6 +357,7 @@ public class TransactionService {
     }
 
     private String generateReference() {
+
         return "TXN-"
                 + UUID.randomUUID()
                 .toString()
@@ -310,16 +366,26 @@ public class TransactionService {
                 .toUpperCase(Locale.ROOT);
     }
 
-    private String normalizeDescription(String description) {
-        if (description == null || description.isBlank()) {
+    private String normalizeDescription(
+            String description
+    ) {
+
+        if (description == null
+                || description.isBlank()) {
+
             return null;
         }
 
         return description.trim();
     }
 
-    private String limitFailureReason(String reason) {
-        if (reason == null || reason.isBlank()) {
+    private String limitFailureReason(
+            String reason
+    ) {
+
+        if (reason == null
+                || reason.isBlank()) {
+
             return "Transaction failed";
         }
 
@@ -328,18 +394,10 @@ public class TransactionService {
                 : reason.substring(0, 500);
     }
 
-    private TransactionResponse findExistingCompletedTransaction(
-            String idempotencyKey
-    ) {
-        return transactionRepository
-                .findByIdempotencyKey(idempotencyKey)
-                .map(this::mapToResponse)
-                .orElse(null);
-    }
-
     private TransactionResponse mapToResponse(
             BankTransaction transaction
     ) {
+
         return new TransactionResponse(
                 transaction.getId(),
                 transaction.getTransactionReference(),

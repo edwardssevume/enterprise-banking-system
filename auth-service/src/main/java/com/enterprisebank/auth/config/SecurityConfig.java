@@ -60,22 +60,33 @@ public class SecurityConfig {
                                 DispatcherType.ERROR
                         ).permitAll()
 
+                        // Public authentication endpoints
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/auth/register",
                                 "/api/auth/login"
                         ).permitAll()
 
+                        // Swagger / OpenAPI endpoints
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
+                        ).permitAll()
+
+                        // Public actuator endpoints
                         .requestMatchers(
                                 "/error",
                                 "/actuator/health",
                                 "/actuator/info"
                         ).permitAll()
 
+                        // Admin-only endpoints
                         .requestMatchers(
                                 "/api/auth/admin/**"
                         ).hasRole("ADMIN")
 
+                        // Everything else requires authentication
                         .anyRequest().authenticated()
                 )
 

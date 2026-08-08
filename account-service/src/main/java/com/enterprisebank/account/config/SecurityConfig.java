@@ -1,5 +1,6 @@
 package com.enterprisebank.account.config;
 
+import com.enterprisebank.account.security.InternalServiceAuthenticationFilter;
 import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,10 +10,22 @@ import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 public class SecurityConfig {
+
+    private final InternalServiceAuthenticationFilter
+            internalServiceAuthenticationFilter;
+
+    public SecurityConfig(
+            InternalServiceAuthenticationFilter
+                    internalServiceAuthenticationFilter
+    ) {
+        this.internalServiceAuthenticationFilter =
+                internalServiceAuthenticationFilter;
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(
@@ -42,14 +55,12 @@ public class SecurityConfig {
                                 "/actuator/info"
                         ).permitAll()
 
+                        // Internal service-to-service endpoints
                         .requestMatchers(
                                 "/internal/accounts/**"
-                        ).hasAnyRole(
-                                "CUSTOMER",
-                                "EMPLOYEE",
-                                "ADMIN"
-                        )
+                        ).hasRole("INTERNAL_SERVICE")
 
+                        // Customer or admin can open an account
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/accounts"
@@ -58,11 +69,13 @@ public class SecurityConfig {
                                 "ADMIN"
                         )
 
+                        // Authenticated user can view own accounts
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/accounts/me"
                         ).authenticated()
 
+                        // Employee or admin can access general account APIs
                         .requestMatchers(
                                 "/api/accounts/**"
                         ).hasAnyRole(
@@ -79,6 +92,11 @@ public class SecurityConfig {
                                         jwtAuthenticationConverter
                                 )
                         )
+                )
+
+                .addFilterBefore(
+                        internalServiceAuthenticationFilter,
+                        BearerTokenAuthenticationFilter.class
                 );
 
         return http.build();

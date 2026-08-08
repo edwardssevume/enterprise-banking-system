@@ -7,7 +7,6 @@ import com.enterprisebank.transaction.dto.WithdrawalRequest;
 import com.enterprisebank.transaction.service.TransactionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -28,15 +27,12 @@ public class TransactionController {
             @Valid @RequestBody DepositRequest request,
             @RequestHeader("Idempotency-Key")
             String idempotencyKey,
-            @RequestHeader(HttpHeaders.AUTHORIZATION)
-            String authorizationHeader,
             @AuthenticationPrincipal Jwt jwt
     ) {
         return transactionService.deposit(
                 request,
                 idempotencyKey,
-                extractUserId(jwt),
-                authorizationHeader
+                extractUserId(jwt)
         );
     }
 
@@ -46,15 +42,12 @@ public class TransactionController {
             @Valid @RequestBody WithdrawalRequest request,
             @RequestHeader("Idempotency-Key")
             String idempotencyKey,
-            @RequestHeader(HttpHeaders.AUTHORIZATION)
-            String authorizationHeader,
             @AuthenticationPrincipal Jwt jwt
     ) {
         return transactionService.withdrawal(
                 request,
                 idempotencyKey,
-                extractUserId(jwt),
-                authorizationHeader
+                extractUserId(jwt)
         );
     }
 
@@ -64,15 +57,12 @@ public class TransactionController {
             @Valid @RequestBody TransferRequest request,
             @RequestHeader("Idempotency-Key")
             String idempotencyKey,
-            @RequestHeader(HttpHeaders.AUTHORIZATION)
-            String authorizationHeader,
             @AuthenticationPrincipal Jwt jwt
     ) {
         return transactionService.transfer(
                 request,
                 idempotencyKey,
-                extractUserId(jwt),
-                authorizationHeader
+                extractUserId(jwt)
         );
     }
 
@@ -87,12 +77,15 @@ public class TransactionController {
 
     @GetMapping("/reference/{reference}")
     public TransactionResponse getByReference(
-            @PathVariable String reference
+            @PathVariable("reference") String reference
     ) {
-        return transactionService.getByReference(reference);
+        return transactionService.getByReference(
+                reference
+        );
     }
 
     private Long extractUserId(Jwt jwt) {
+
         Number userId = jwt.getClaim("userId");
 
         if (userId == null) {
