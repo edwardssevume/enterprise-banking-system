@@ -8,6 +8,10 @@ spring:
         webflux:
           routes:
 
+            # =========================
+            # APPLICATION API ROUTES
+            # =========================
+
             - id: auth-service
               uri: lb://auth-service
               predicates:
@@ -28,6 +32,39 @@ spring:
               predicates:
                 - Path=/api/transactions/**
 
+
+            # =========================
+            # OPENAPI DOCUMENTATION
+            # =========================
+
+            - id: auth-service-docs
+              uri: lb://auth-service
+              predicates:
+                - Path=/auth-service/v3/api-docs
+              filters:
+                - RewritePath=/auth-service/v3/api-docs, /v3/api-docs
+
+            - id: customer-service-docs
+              uri: lb://customer-service
+              predicates:
+                - Path=/customer-service/v3/api-docs
+              filters:
+                - RewritePath=/customer-service/v3/api-docs, /v3/api-docs
+
+            - id: account-service-docs
+              uri: lb://account-service
+              predicates:
+                - Path=/account-service/v3/api-docs
+              filters:
+                - RewritePath=/account-service/v3/api-docs, /v3/api-docs
+
+            - id: transaction-service-docs
+              uri: lb://transaction-service
+              predicates:
+                - Path=/transaction-service/v3/api-docs
+              filters:
+                - RewritePath=/transaction-service/v3/api-docs, /v3/api-docs
+
 eureka:
   client:
     service-url:
@@ -41,3 +78,20 @@ management:
     web:
       exposure:
         include: health,info,gateway
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+    urls:
+      - name: Authentication Service
+        url: /auth-service/v3/api-docs
+
+      - name: Customer Service
+        url: /customer-service/v3/api-docs
+
+      - name: Account Service
+        url: /account-service/v3/api-docs
+
+      - name: Transaction Service
+        url: /transaction-service/v3/api-docs

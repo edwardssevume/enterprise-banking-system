@@ -49,6 +49,14 @@ public class SecurityConfig {
                                 DispatcherType.ERROR
                         ).permitAll()
 
+                        // Swagger / OpenAPI
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
+                        ).permitAll()
+
+                        // Public actuator endpoints
                         .requestMatchers(
                                 "/error",
                                 "/actuator/health",
@@ -69,7 +77,7 @@ public class SecurityConfig {
                                 "ADMIN"
                         )
 
-                        // Authenticated user can view own accounts
+                        // Any authenticated user can view own accounts
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/accounts/me"

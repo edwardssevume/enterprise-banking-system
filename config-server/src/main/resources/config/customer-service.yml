@@ -35,3 +35,10 @@ security:
   jwt:
     secret: ${JWT_SECRET}
     issuer: enterprise-banking-auth-service
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+
+  swagger-ui:
+    path: /swagger-ui.html

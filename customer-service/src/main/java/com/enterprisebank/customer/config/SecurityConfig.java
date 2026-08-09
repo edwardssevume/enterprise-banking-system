@@ -36,12 +36,21 @@ public class SecurityConfig {
                                 DispatcherType.ERROR
                         ).permitAll()
 
+                        // Swagger / OpenAPI
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
+                        ).permitAll()
+
+                        // Public actuator endpoints
                         .requestMatchers(
                                 "/error",
                                 "/actuator/health",
                                 "/actuator/info"
                         ).permitAll()
 
+                        // Customer or admin can create a customer profile
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/customers"
@@ -50,11 +59,13 @@ public class SecurityConfig {
                                 "ADMIN"
                         )
 
+                        // Any authenticated user can retrieve own profile
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/customers/me"
                         ).authenticated()
 
+                        // Employee or admin can access other customer APIs
                         .requestMatchers(
                                 "/api/customers/**"
                         ).hasAnyRole(
