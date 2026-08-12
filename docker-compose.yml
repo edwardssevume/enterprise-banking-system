@@ -1,0 +1,350 @@
+services:
+
+  # =====================================================
+  # MYSQL
+  # =====================================================
+  mysql:
+    image: mysql:8.4
+    container_name: mysql
+
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
+
+    ports:
+      - "3307:3306"
+
+    volumes:
+      - enterprise-bank-mysql-data:/var/lib/mysql
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD || exit 1"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+    restart: unless-stopped
+
+    networks:
+      - enterprise-bank-network
+
+
+  # =====================================================
+  # DISCOVERY SERVER - EUREKA
+  # =====================================================
+  discovery-server:
+    build:
+      context: ./discovery-server
+
+    image: enterprisebank/discovery-server:1.0.0
+    container_name: discovery-server
+
+    ports:
+      - "8761:8761"
+
+    restart: on-failure
+
+    networks:
+      - enterprise-bank-network
+
+
+  # =====================================================
+  # CONFIG SERVER
+  # =====================================================
+  config-server:
+    build:
+      context: ./config-server
+
+    image: enterprisebank/config-server:1.0.0
+    container_name: config-server
+
+    environment:
+      EUREKA_URL: "http://discovery-server:8761/eureka/"
+
+    ports:
+      - "8888:8888"
+
+    depends_on:
+      - discovery-server
+
+    restart: on-failure
+
+    networks:
+      - enterprise-bank-network
+
+
+  # =====================================================
+  # AUTH SERVICE
+  # =====================================================
+  auth-service:
+    build:
+      context: ./auth-service
+
+    image: enterprisebank/auth-service:1.0.0
+    container_name: auth-service
+
+    environment:
+
+      # Config Server
+      SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
+      CONFIG_SERVER_URL: "http://config-server:8888"
+      SPRING_CLOUD_CONFIG_URI: "http://config-server:8888"
+
+      # Eureka
+      EUREKA_URL: "http://discovery-server:8761/eureka/"
+
+      # MySQL
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/auth_db?createDatabaseIfNotExist=true"
+      SPRING_DATASOURCE_USERNAME: "root"
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+
+      # JWT
+      JWT_SECRET: ${JWT_SECRET}
+
+    ports:
+      - "8081:8081"
+
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+      discovery-server:
+        condition: service_started
+
+      config-server:
+        condition: service_started
+
+    restart: on-failure
+
+    networks:
+      - enterprise-bank-network
+
+
+  # =====================================================
+  # CUSTOMER SERVICE
+  # =====================================================
+  customer-service:
+    build:
+      context: ./customer-service
+
+    image: enterprisebank/customer-service:1.0.0
+    container_name: customer-service
+
+    environment:
+
+      # Config Server
+      SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
+      CONFIG_SERVER_URL: "http://config-server:8888"
+      SPRING_CLOUD_CONFIG_URI: "http://config-server:8888"
+
+      # Eureka
+      EUREKA_URL: "http://discovery-server:8761/eureka/"
+
+      # MySQL
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/customer_db?createDatabaseIfNotExist=true"
+      SPRING_DATASOURCE_USERNAME: "root"
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+
+      # JWT
+      JWT_SECRET: ${JWT_SECRET}
+
+    ports:
+      - "8082:8082"
+
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+      discovery-server:
+        condition: service_started
+
+      config-server:
+        condition: service_started
+
+      auth-service:
+        condition: service_started
+
+    restart: on-failure
+
+    networks:
+      - enterprise-bank-network
+
+
+  # =====================================================
+  # ACCOUNT SERVICE
+  # =====================================================
+  account-service:
+    build:
+      context: ./account-service
+
+    image: enterprisebank/account-service:1.0.0
+    container_name: account-service
+
+    environment:
+
+      # Config Server
+      SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
+      CONFIG_SERVER_URL: "http://config-server:8888"
+      SPRING_CLOUD_CONFIG_URI: "http://config-server:8888"
+
+      # Eureka
+      EUREKA_URL: "http://discovery-server:8761/eureka/"
+
+      # MySQL
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/account_db?createDatabaseIfNotExist=true"
+      SPRING_DATASOURCE_USERNAME: "root"
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+
+      # JWT
+      JWT_SECRET: ${JWT_SECRET}
+
+      # Service-to-service authentication
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET}
+
+    ports:
+      - "8083:8083"
+
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+      discovery-server:
+        condition: service_started
+
+      config-server:
+        condition: service_started
+
+      customer-service:
+        condition: service_started
+
+    restart: on-failure
+
+    networks:
+      - enterprise-bank-network
+
+
+  # =====================================================
+  # TRANSACTION SERVICE
+  # =====================================================
+  transaction-service:
+    build:
+      context: ./transaction-service
+
+    image: enterprisebank/transaction-service:1.0.0
+    container_name: transaction-service
+
+    environment:
+
+      # Config Server
+      SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
+      CONFIG_SERVER_URL: "http://config-server:8888"
+      SPRING_CLOUD_CONFIG_URI: "http://config-server:8888"
+
+      # Eureka
+      EUREKA_URL: "http://discovery-server:8761/eureka/"
+
+      # MySQL
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/transaction_db?createDatabaseIfNotExist=true"
+      SPRING_DATASOURCE_USERNAME: "root"
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+
+      # JWT
+      JWT_SECRET: ${JWT_SECRET}
+
+      # Service-to-service authentication
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET}
+
+    ports:
+      - "8084:8084"
+
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+      discovery-server:
+        condition: service_started
+
+      config-server:
+        condition: service_started
+
+      account-service:
+        condition: service_started
+
+    restart: on-failure
+
+    networks:
+      - enterprise-bank-network
+
+
+  # =====================================================
+  # API GATEWAY
+  # =====================================================
+  api-gateway:
+    build:
+      context: ./api-gateway
+
+    image: enterprisebank/api-gateway:1.0.0
+    container_name: api-gateway
+
+    environment:
+
+      # Config Server
+      SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
+      CONFIG_SERVER_URL: "http://config-server:8888"
+      SPRING_CLOUD_CONFIG_URI: "http://config-server:8888"
+
+      # Eureka
+      EUREKA_URL: "http://discovery-server:8761/eureka/"
+
+    ports:
+      - "8080:8080"
+
+    depends_on:
+      discovery-server:
+        condition: service_started
+
+      config-server:
+        condition: service_started
+
+      auth-service:
+        condition: service_started
+
+      customer-service:
+        condition: service_started
+
+      account-service:
+        condition: service_started
+
+      transaction-service:
+        condition: service_started
+
+    restart: on-failure
+
+    networks:
+      - enterprise-bank-network
+
+
+# =====================================================
+# NETWORK
+# =====================================================
+networks:
+
+  enterprise-bank-network:
+    driver: bridge
+
+
+# =====================================================
+# PERSISTENT MYSQL DATA
+# =====================================================
+volumes:
+
+  enterprise-bank-mysql-data:
+    name: enterprise-bank-mysql-data
