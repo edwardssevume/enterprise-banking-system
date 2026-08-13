@@ -1,7 +1,7 @@
 services:
 
   # =====================================================
-  # MYSQL
+  # MYSQL DATABASE
   # =====================================================
   mysql:
     image: mysql:8.4
@@ -46,7 +46,18 @@ services:
     ports:
       - "8761:8761"
 
-    restart: on-failure
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q --spider http://localhost:8761/ || exit 1"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+    restart: unless-stopped
 
     networks:
       - enterprise-bank-network
@@ -69,9 +80,21 @@ services:
       - "8888:8888"
 
     depends_on:
-      - discovery-server
+      discovery-server:
+        condition: service_healthy
 
-    restart: on-failure
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://localhost:8888/actuator/health | grep 'UP' || exit 1"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+    restart: unless-stopped
 
     networks:
       - enterprise-bank-network
@@ -101,6 +124,7 @@ services:
       SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/auth_db?createDatabaseIfNotExist=true"
       SPRING_DATASOURCE_USERNAME: "root"
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
 
       # JWT
@@ -114,12 +138,23 @@ services:
         condition: service_healthy
 
       discovery-server:
-        condition: service_started
+        condition: service_healthy
 
       config-server:
-        condition: service_started
+        condition: service_healthy
 
-    restart: on-failure
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://localhost:8081/actuator/health | grep 'UP' || exit 1"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+    restart: unless-stopped
 
     networks:
       - enterprise-bank-network
@@ -149,6 +184,7 @@ services:
       SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/customer_db?createDatabaseIfNotExist=true"
       SPRING_DATASOURCE_USERNAME: "root"
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
 
       # JWT
@@ -162,15 +198,23 @@ services:
         condition: service_healthy
 
       discovery-server:
-        condition: service_started
+        condition: service_healthy
 
       config-server:
-        condition: service_started
+        condition: service_healthy
 
-      auth-service:
-        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://localhost:8082/actuator/health | grep 'UP' || exit 1"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
-    restart: on-failure
+    restart: unless-stopped
 
     networks:
       - enterprise-bank-network
@@ -200,6 +244,7 @@ services:
       SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/account_db?createDatabaseIfNotExist=true"
       SPRING_DATASOURCE_USERNAME: "root"
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
 
       # JWT
@@ -216,15 +261,26 @@ services:
         condition: service_healthy
 
       discovery-server:
-        condition: service_started
+        condition: service_healthy
 
       config-server:
-        condition: service_started
+        condition: service_healthy
 
       customer-service:
-        condition: service_started
+        condition: service_healthy
 
-    restart: on-failure
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://localhost:8083/actuator/health | grep 'UP' || exit 1"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+    restart: unless-stopped
 
     networks:
       - enterprise-bank-network
@@ -254,6 +310,7 @@ services:
       SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/transaction_db?createDatabaseIfNotExist=true"
       SPRING_DATASOURCE_USERNAME: "root"
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
 
       # JWT
@@ -270,15 +327,26 @@ services:
         condition: service_healthy
 
       discovery-server:
-        condition: service_started
+        condition: service_healthy
 
       config-server:
-        condition: service_started
+        condition: service_healthy
 
       account-service:
-        condition: service_started
+        condition: service_healthy
 
-    restart: on-failure
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://localhost:8084/actuator/health | grep 'UP' || exit 1"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+    restart: unless-stopped
 
     networks:
       - enterprise-bank-network
@@ -309,31 +377,42 @@ services:
 
     depends_on:
       discovery-server:
-        condition: service_started
+        condition: service_healthy
 
       config-server:
-        condition: service_started
+        condition: service_healthy
 
       auth-service:
-        condition: service_started
+        condition: service_healthy
 
       customer-service:
-        condition: service_started
+        condition: service_healthy
 
       account-service:
-        condition: service_started
+        condition: service_healthy
 
       transaction-service:
-        condition: service_started
+        condition: service_healthy
 
-    restart: on-failure
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://localhost:8080/actuator/health | grep 'UP' || exit 1"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+    restart: unless-stopped
 
     networks:
       - enterprise-bank-network
 
 
 # =====================================================
-# NETWORK
+# DOCKER NETWORK
 # =====================================================
 networks:
 
@@ -342,7 +421,7 @@ networks:
 
 
 # =====================================================
-# PERSISTENT MYSQL DATA
+# MYSQL PERSISTENT VOLUME
 # =====================================================
 volumes:
 
