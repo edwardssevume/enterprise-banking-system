@@ -7,16 +7,26 @@ spring:
     username: root
     password: ${MYSQL_PASSWORD}
 
-
   jpa:
     hibernate:
       ddl-auto: update
+
     show-sql: true
     open-in-view: false
 
     properties:
       hibernate:
         format_sql: true
+
+  cloud:
+    circuitbreaker:
+      resilience4j:
+        disable-time-limiter: true
+
+      bulkhead:
+        resilience4j:
+          enabled: false
+
 
 eureka:
   client:
@@ -27,20 +37,50 @@ eureka:
     prefer-ip-address: true
     instance-id: ${spring.application.name}:${server.port}
 
+
 security:
   jwt:
     secret: ${JWT_SECRET}
     issuer: enterprise-banking-auth-service
 
+
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics
+
 
 internal:
   service:
     secret: ${INTERNAL_SERVICE_SECRET}
+
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      accountService:
+        registerHealthIndicator: true
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        permittedNumberOfCallsInHalfOpenState: 3
+        waitDurationInOpenState: 10s
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+
+  retry:
+    instances:
+      accountService:
+        maxAttempts: 2
+        waitDuration: 500ms
+
+        retryExceptions:
+          - com.enterprisebank.transaction.exception.AccountServiceUnavailableException
+
+        ignoreExceptions:
+          - org.springframework.web.client.RestClientResponseException
+
 
 springdoc:
   api-docs:
