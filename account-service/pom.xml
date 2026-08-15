@@ -92,6 +92,30 @@
 			<version>3.0.3</version>
 		</dependency>
 
+		<!-- Resilience4j Circuit Breaker integration with Spring Cloud -->
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
+		</dependency>
+
+		<!-- Resilience4j Retry -->
+		<dependency>
+			<groupId>io.github.resilience4j</groupId>
+			<artifactId>resilience4j-retry</artifactId>
+		</dependency>
+
+		<!-- Binds resilience4j.* properties from application/config YAML -->
+		<dependency>
+			<groupId>io.github.resilience4j</groupId>
+			<artifactId>resilience4j-spring-boot3</artifactId>
+		</dependency>
+
+		<!-- Publishes Resilience4j metrics through Micrometer/Actuator -->
+		<dependency>
+			<groupId>io.github.resilience4j</groupId>
+			<artifactId>resilience4j-micrometer</artifactId>
+		</dependency>
+
 	</dependencies>
 
 	<build>

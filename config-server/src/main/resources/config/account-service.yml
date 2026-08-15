@@ -13,9 +13,19 @@ spring:
       ddl-auto: update
     show-sql: true
     open-in-view: false
+
     properties:
       hibernate:
         format_sql: true
+
+  cloud:
+    circuitbreaker:
+      resilience4j:
+        disable-time-limiter: true
+
+      bulkhead:
+        resilience4j:
+          enabled: false
 
 eureka:
   client:
@@ -34,11 +44,37 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics
 
 internal:
   service:
     secret: ${INTERNAL_SERVICE_SECRET}
+
+resilience4j:
+
+  circuitbreaker:
+    instances:
+      customerService:
+        registerHealthIndicator: true
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        permittedNumberOfCallsInHalfOpenState: 3
+        waitDurationInOpenState: 10s
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+
+  retry:
+    instances:
+      customerService:
+        maxAttempts: 2
+        waitDuration: 500ms
+
+        retryExceptions:
+          - com.enterprisebank.account.exception.CustomerServiceUnavailableException
+
+        ignoreExceptions:
+          - org.springframework.web.client.RestClientResponseException
 
 springdoc:
   api-docs:

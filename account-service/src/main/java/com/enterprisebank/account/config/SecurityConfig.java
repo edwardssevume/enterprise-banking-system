@@ -56,11 +56,10 @@ public class SecurityConfig {
                                 "/swagger-ui.html"
                         ).permitAll()
 
-                        // Public actuator endpoints
+                        // Actuator endpoints for local monitoring/testing
                         .requestMatchers(
                                 "/error",
-                                "/actuator/health",
-                                "/actuator/info"
+                                "/actuator/**"
                         ).permitAll()
 
                         // Internal service-to-service endpoints
