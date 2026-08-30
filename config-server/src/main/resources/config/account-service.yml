@@ -44,7 +44,15 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
+
+  tracing:
+    sampling:
+      probability: 1.0
+
+    export:
+      zipkin:
+        endpoint: ${ZIPKIN_URL:http://127.0.0.1:9411/api/v2/spans}
 
 internal:
   service:

@@ -1,5 +1,6 @@
 package com.enterprisebank.transaction.config;
 
+import org.springframework.boot.restclient.autoconfigure.RestClientBuilderConfigurer;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,14 +12,17 @@ public class RestClientConfig {
 
     @Bean
     @Primary
-    public RestClient.Builder restClientBuilder() {
-        return RestClient.builder();
+    public RestClient.Builder restClientBuilder(
+            RestClientBuilderConfigurer configurer) {
+
+        return configurer.configure(RestClient.builder());
     }
 
     @Bean(name = "accountServiceRestClientBuilder")
     @LoadBalanced
-    public RestClient.Builder
-    accountServiceRestClientBuilder() {
-        return RestClient.builder();
+    public RestClient.Builder accountServiceRestClientBuilder(
+            RestClientBuilderConfigurer configurer) {
+
+        return configurer.configure(RestClient.builder());
     }
 }

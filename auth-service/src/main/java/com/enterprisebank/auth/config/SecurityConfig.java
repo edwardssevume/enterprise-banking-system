@@ -77,8 +77,7 @@ public class SecurityConfig {
                         // Public actuator endpoints
                         .requestMatchers(
                                 "/error",
-                                "/actuator/health",
-                                "/actuator/info"
+                                "/actuator/**"
                         ).permitAll()
 
                         // Admin-only endpoints

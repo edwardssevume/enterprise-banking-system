@@ -46,8 +46,7 @@ public class SecurityConfig {
                         // Public actuator endpoints
                         .requestMatchers(
                                 "/error",
-                                "/actuator/health",
-                                "/actuator/info"
+                                "/actuator/**"
                         ).permitAll()
 
                         // Customer or admin can create a customer profile
