@@ -1,4 +1,4 @@
-package com.enterprisebank.transaction.security;
+package com.enterprisebank.notification.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,7 +12,8 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 public class JwtAuthenticationConverterConfig {
 
     @Bean
-    public Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter() {
+    public Converter<Jwt, AbstractAuthenticationToken>
+    jwtAuthenticationConverter() {
 
         JwtGrantedAuthoritiesConverter authoritiesConverter =
                 new JwtGrantedAuthoritiesConverter();
@@ -23,7 +24,9 @@ public class JwtAuthenticationConverterConfig {
         JwtAuthenticationConverter delegate =
                 new JwtAuthenticationConverter();
 
-        delegate.setJwtGrantedAuthoritiesConverter(authoritiesConverter);
+        delegate.setJwtGrantedAuthoritiesConverter(
+                authoritiesConverter
+        );
 
         return new Converter<Jwt, AbstractAuthenticationToken>() {
 

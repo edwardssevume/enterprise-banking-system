@@ -10,12 +10,14 @@ import com.enterprisebank.transaction.entity.BankTransaction;
 import com.enterprisebank.transaction.entity.TransactionDirection;
 import com.enterprisebank.transaction.entity.TransactionStatus;
 import com.enterprisebank.transaction.entity.TransactionType;
+import com.enterprisebank.transaction.event.TransactionCommittedEvent;
 import com.enterprisebank.transaction.exception.InvalidTransactionException;
 import com.enterprisebank.transaction.exception.TransactionNotFoundException;
 import com.enterprisebank.transaction.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -30,7 +32,9 @@ public class TransactionService {
 
     private final TransactionRepository transactionRepository;
     private final AccountServiceClient accountServiceClient;
+    private final ApplicationEventPublisher eventPublisher;
 
+    @Transactional
     public TransactionResponse deposit(
             DepositRequest request,
             String idempotencyKey,
@@ -76,6 +80,7 @@ public class TransactionService {
         }
     }
 
+    @Transactional
     public TransactionResponse withdrawal(
             WithdrawalRequest request,
             String idempotencyKey,
@@ -121,6 +126,7 @@ public class TransactionService {
         }
     }
 
+    @Transactional
     public TransactionResponse transfer(
             TransferRequest request,
             String idempotencyKey,
@@ -312,6 +318,12 @@ public class TransactionService {
                 transactionRepository.save(
                         transaction
                 );
+
+        eventPublisher.publishEvent(
+                new TransactionCommittedEvent(
+                        savedTransaction
+                )
+        );
 
         return mapToResponse(savedTransaction);
     }

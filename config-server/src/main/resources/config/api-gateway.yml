@@ -32,6 +32,16 @@ spring:
               predicates:
                 - Path=/api/transactions/**
 
+            - id: audit-service
+              uri: lb://audit-service
+              predicates:
+                - Path=/api/audit/**
+
+            - id: notification-service
+              uri: lb://notification-service
+              predicates:
+                - Path=/api/notifications/**
+
 
             # =========================
             # OPENAPI DOCUMENTATION
@@ -64,6 +74,20 @@ spring:
                 - Path=/transaction-service/v3/api-docs
               filters:
                 - RewritePath=/transaction-service/v3/api-docs, /v3/api-docs
+
+            - id: audit-service-docs
+              uri: lb://audit-service
+              predicates:
+                - Path=/audit-service/v3/api-docs
+              filters:
+                - RewritePath=/audit-service/v3/api-docs, /v3/api-docs
+
+            - id: notification-service-docs
+              uri: lb://notification-service
+              predicates:
+                - Path=/notification-service/v3/api-docs
+              filters:
+                - RewritePath=/notification-service/v3/api-docs, /v3/api-docs
 
 eureka:
   client:
@@ -102,3 +126,9 @@ springdoc:
 
       - name: Transaction Service
         url: /transaction-service/v3/api-docs
+
+      - name: Audit Service
+        url: /audit-service/v3/api-docs
+
+      - name: Notification Service
+        url: /notification-service/v3/api-docs
