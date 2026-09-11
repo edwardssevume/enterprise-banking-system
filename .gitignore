@@ -36,3 +36,18 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+# Environment/secrets
+.env
+*.env
+
+# Maven
+target/
+**/target/
+
+# IntelliJ
+.idea/
+*.iml
+
+# Logs
+*.log
