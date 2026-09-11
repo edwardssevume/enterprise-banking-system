@@ -27,3 +27,7 @@ security:
   jwt:
     secret: "VGhpc0lzQVRlc3RTZWNyZXRLZXlGb3JKV1RUZXN0aW5nMTIzNDU2"
     issuer: "enterprise-banking-auth-service"
+
+internal:
+  service:
+    secret: "test-internal-service-secret"
