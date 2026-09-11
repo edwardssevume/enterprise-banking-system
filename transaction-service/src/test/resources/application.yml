@@ -17,6 +17,12 @@ spring:
       ddl-auto: create-drop
     open-in-view: false
 
+  kafka:
+    bootstrap-servers: 127.0.0.1:9092
+    consumer:
+      group-id: transaction-service-test-group
+      auto-offset-reset: earliest
+
 eureka:
   client:
     enabled: false
@@ -27,3 +33,7 @@ security:
   jwt:
     secret: "VGhpc0lzQVRlc3RTZWNyZXRLZXlGb3JKV1RUZXN0aW5nMTIzNDU2"
     issuer: "enterprise-banking-auth-service"
+
+internal:
+  service:
+    secret: "test-internal-service-secret"
