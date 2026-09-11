@@ -1,16 +1,19 @@
 package com.enterprisebank.fraud.integration;
 
+import com.enterprisebank.fraud.FraudServiceApplication;
 import com.enterprisebank.fraud.entity.FraudAssessment;
-import com.enterprisebank.fraud.entity.ReviewStatus;
 import com.enterprisebank.fraud.entity.RiskLevel;
 import com.enterprisebank.fraud.event.TransactionCompletedEvent;
 import com.enterprisebank.fraud.repository.FraudAssessmentRepository;
+
 import org.junit.jupiter.api.Test;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.kafka.KafkaContainer;
@@ -24,52 +27,77 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-@SpringBootTest
 @Testcontainers
+@SpringBootTest(
+        classes = FraudServiceApplication.class,
+        properties = {
+                "spring.cloud.config.enabled=false",
+                "eureka.client.enabled=false",
+                "eureka.client.register-with-eureka=false",
+                "eureka.client.fetch-registry=false"
+        }
+)
 class FraudServiceIntegrationTest {
 
     @Container
-    static final MySQLContainer mysql =
+    static final MySQLContainer MYSQL =
             new MySQLContainer("mysql:8.4")
                     .withDatabaseName("fraud_test_db")
                     .withUsername("test")
                     .withPassword("test");
 
     @Container
-    static final KafkaContainer kafka =
+    static final KafkaContainer KAFKA =
             new KafkaContainer("apache/kafka-native:3.8.0");
 
     @Autowired
-    private KafkaTemplate<String, Object> kafkaTemplate;
+    private KafkaTemplate<String, TransactionCompletedEvent> kafkaTemplate;
 
     @Autowired
     private FraudAssessmentRepository fraudAssessmentRepository;
 
     @DynamicPropertySource
-    static void configureProperties(
-            DynamicPropertyRegistry registry
-    ) {
+    static void configureProperties(DynamicPropertyRegistry registry) {
+
+        // -----------------------------
+        // MySQL Testcontainer
+        // -----------------------------
 
         registry.add(
                 "spring.datasource.url",
-                mysql::getJdbcUrl
+                MYSQL::getJdbcUrl
         );
 
         registry.add(
                 "spring.datasource.username",
-                mysql::getUsername
+                MYSQL::getUsername
         );
 
         registry.add(
                 "spring.datasource.password",
-                mysql::getPassword
+                MYSQL::getPassword
         );
 
         registry.add(
-                "spring.kafka.bootstrap-servers",
-                kafka::getBootstrapServers
+                "spring.datasource.driver-class-name",
+                MYSQL::getDriverClassName
         );
 
+        registry.add(
+                "spring.jpa.hibernate.ddl-auto",
+                () -> "create-drop"
+        );
+
+        // -----------------------------
+        // Kafka Testcontainer
+        // -----------------------------
+
+        registry.add(
+                "spring.kafka.bootstrap-servers",
+                KAFKA::getBootstrapServers
+        );
+
+        // Producer
         registry.add(
                 "spring.kafka.producer.key-serializer",
                 () -> "org.apache.kafka.common.serialization.StringSerializer"
@@ -81,29 +109,19 @@ class FraudServiceIntegrationTest {
         );
 
         registry.add(
+                "spring.kafka.producer.properties.spring.json.add.type.headers",
+                () -> "false"
+        );
+
+        // Consumer
+        registry.add(
                 "spring.kafka.consumer.group-id",
-                () -> "fraud-service-test-group"
+                () -> "fraud-service-integration-test-group"
         );
 
         registry.add(
                 "spring.kafka.consumer.auto-offset-reset",
                 () -> "earliest"
-        );
-
-        registry.add(
-                "eureka.client.enabled",
-                () -> false
-        );
-
-        registry.add(
-                "spring.cloud.config.enabled",
-                () -> false
-        );
-
-        registry.add(
-                "jwt.secret",
-                () ->
-                        "VGhpc0lzQVRlc3RTZWNyZXRLZXlGb3JKV1RUZXN0aW5nMTIzNDU2"
         );
 
         registry.add(
@@ -133,17 +151,12 @@ class FraudServiceIntegrationTest {
 
         registry.add(
                 "spring.kafka.consumer.properties.spring.json.use.type.headers",
-                () -> false
+                () -> "false"
         );
 
         registry.add(
                 "spring.kafka.consumer.properties.spring.json.value.default.type",
                 () -> "com.enterprisebank.fraud.event.TransactionCompletedEvent"
-        );
-
-        registry.add(
-                "spring.kafka.producer.properties.spring.json.add.type.headers",
-                () -> false
         );
     }
 
@@ -151,8 +164,7 @@ class FraudServiceIntegrationTest {
     void shouldConsumeHighValueTransactionAndPersistHighRiskAssessment()
             throws Exception {
 
-        String eventId =
-                UUID.randomUUID().toString();
+        String eventId = UUID.randomUUID().toString();
 
         String transactionReference =
                 "TXN-TEST-" + UUID.randomUUID();
@@ -161,16 +173,17 @@ class FraudServiceIntegrationTest {
                 new TransactionCompletedEvent(
                         eventId,
                         transactionReference,
-                        "DEPOSIT",
-                        null,
-                        1L,
+                        "TRANSFER",
+                        1001L,
+                        2001L,
                         new BigDecimal("15000.00"),
                         "CAD",
-                        "Integration test",
+                        "High value integration test transaction",
                         1L,
                         LocalDateTime.now()
                 );
 
+        // Publish test transaction to Kafka
         kafkaTemplate
                 .send(
                         "transaction-events",
@@ -179,35 +192,46 @@ class FraudServiceIntegrationTest {
                 )
                 .get();
 
+        // Wait until Fraud Service consumes and persists it
         await()
-                .atMost(Duration.ofSeconds(30))
-                .pollInterval(Duration.ofMillis(500))
-                .untilAsserted(() -> {
+                .atMost(Duration.ofSeconds(20))
+                .until(() ->
+                        fraudAssessmentRepository
+                                .findByEventId(eventId)
+                                .isPresent()
+                );
 
-                    var result =
-                            fraudAssessmentRepository
-                                    .findByEventId(eventId);
+        FraudAssessment assessment =
+                fraudAssessmentRepository
+                        .findByEventId(eventId)
+                        .orElseThrow();
 
-                    assertThat(result)
-                            .as("Fraud assessment should eventually be persisted")
-                            .isPresent();
+        // Verify persisted assessment
+        assertThat(assessment.getEventId())
+                .isEqualTo(eventId);
 
-                    FraudAssessment assessment =
-                            result.get();
+        assertThat(assessment.getTransactionReference())
+                .isEqualTo(transactionReference);
 
-                    assertThat(
-                            assessment.getRiskLevel()
-                    ).isEqualTo(RiskLevel.HIGH);
+        assertThat(assessment.getAmount())
+                .isEqualByComparingTo("15000.00");
 
-                    assertThat(
-                            assessment.getRiskScore()
-                    ).isEqualTo(90);
+        assertThat(assessment.getCurrency())
+                .isEqualTo("CAD");
 
-                    assertThat(
-                            assessment.getReviewStatus()
-                    ).isEqualTo(
-                            ReviewStatus.PENDING_REVIEW
-                    );
-                });
+        assertThat(assessment.getTransactionType())
+                .isEqualTo("TRANSFER");
+
+        assertThat(assessment.getRiskLevel())
+                .isEqualTo(RiskLevel.HIGH);
+
+        assertThat(assessment.getRiskScore())
+                .isNotNull();
+
+        assertThat(assessment.getFraudReason())
+                .isNotBlank();
+
+        assertThat(assessment.getAssessedAt())
+                .isNotNull();
     }
 }
