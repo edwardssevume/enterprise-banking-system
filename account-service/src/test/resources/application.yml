@@ -27,3 +27,7 @@ security:
   jwt:
     secret: "REDACTED_HISTORICAL_TEST_SECRET"
     issuer: "enterprise-banking-auth-service"
+
+internal:
+  service:
+    secret: "test-internal-service-secret"
