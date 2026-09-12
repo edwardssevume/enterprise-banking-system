@@ -29,7 +29,6 @@ eureka:
     register-with-eureka: false
     fetch-registry: false
 
-security:
-  jwt:
-    secret: "REDACTED_HISTORICAL_TEST_SECRET"
-    issuer: "enterprise-banking-auth-service"
+jwt:
+  secret: "REDACTED_HISTORICAL_TEST_SECRET"
+  issuer: "enterprise-banking-auth-service"
