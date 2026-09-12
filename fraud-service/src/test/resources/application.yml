@@ -29,7 +29,6 @@ eureka:
     register-with-eureka: false
     fetch-registry: false
 
-security:
-  jwt:
-    secret: "VGhpc0lzQVRlc3RTZWNyZXRLZXlGb3JKV1RUZXN0aW5nMTIzNDU2"
-    issuer: "enterprise-banking-auth-service"
+jwt:
+  secret: "VGhpc0lzQVRlc3RTZWNyZXRLZXlGb3JKV1RUZXN0aW5nMTIzNDU2"
+  issuer: "enterprise-banking-auth-service"
