@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: transaction-service
+  namespace: enterprise-bank
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: transaction-service
+
+  template:
+    metadata:
+      labels:
+        app: transaction-service
+
+    spec:
+      containers:
+        - name: transaction-service
+          image: enterprise-bank/transaction-service:1.0
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 8084
+
+          env:
+            - name: CONFIG_SERVER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-common-config
+                  key: CONFIG_SERVER_URL
+
+            - name: EUREKA_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-common-config
+                  key: EUREKA_SERVER_URL
+
+            - name: EUREKA_INSTANCE_HOSTNAME
+              value: "transaction-service"
+
+            - name: TRANSACTION_DB_URL
+              value: "jdbc:mysql://mysql:3306/transaction_db"
+
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "kafka:9092"
+
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: banking-database-secret
+                  key: MYSQL_PASSWORD
+
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: banking-database-secret
+                  key: JWT_SECRET
+
+            - name: INTERNAL_SERVICE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: banking-database-secret
+                  key: INTERNAL_SERVICE_SECRET

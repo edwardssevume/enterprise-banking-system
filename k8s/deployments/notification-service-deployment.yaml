@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  namespace: enterprise-bank
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: notification-service
+
+  template:
+    metadata:
+      labels:
+        app: notification-service
+
+    spec:
+      containers:
+        - name: notification-service
+          image: enterprise-bank/notification-service:1.0
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 8086
+
+          env:
+            - name: CONFIG_SERVER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-common-config
+                  key: CONFIG_SERVER_URL
+
+            - name: EUREKA_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-common-config
+                  key: EUREKA_SERVER_URL
+
+            - name: EUREKA_INSTANCE_HOSTNAME
+              value: "notification-service"
+
+            - name: MYSQL_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-database-config
+                  key: MYSQL_HOST
+
+            - name: MYSQL_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-database-config
+                  key: MYSQL_PORT
+
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: banking-database-secret
+                  key: MYSQL_USERNAME
+
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: banking-database-secret
+                  key: MYSQL_PASSWORD
+
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "kafka:9092"
+
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: banking-database-secret
+                  key: JWT_SECRET

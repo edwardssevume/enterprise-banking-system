@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: account-service
+  namespace: enterprise-bank
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: account-service
+
+  template:
+    metadata:
+      labels:
+        app: account-service
+
+    spec:
+      containers:
+        - name: account-service
+          image: enterprise-bank/account-service:1.0
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 8083
+
+          env:
+            - name: CONFIG_SERVER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-common-config
+                  key: CONFIG_SERVER_URL
+
+            - name: EUREKA_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-common-config
+                  key: EUREKA_SERVER_URL
+
+            - name: EUREKA_INSTANCE_HOSTNAME
+              value: "account-service"
+
+
+            - name: ACCOUNT_DB_URL
+              value: "jdbc:mysql://mysql:3306/account_db"
+
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: banking-database-secret
+                  key: MYSQL_PASSWORD
+
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: banking-database-secret
+                  key: JWT_SECRET
+
+            - name: INTERNAL_SERVICE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: banking-database-secret
+                  key: INTERNAL_SERVICE_SECRET

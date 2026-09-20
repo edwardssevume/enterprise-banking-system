@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: customer-service
+  namespace: enterprise-bank
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: customer-service
+
+  template:
+    metadata:
+      labels:
+        app: customer-service
+
+    spec:
+      containers:
+        - name: customer-service
+          image: enterprise-bank/customer-service:1.0
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 8082
+
+          env:
+            - name: CONFIG_SERVER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-common-config
+                  key: CONFIG_SERVER_URL
+
+            - name: EUREKA_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-common-config
+                  key: EUREKA_SERVER_URL
+
+            - name: EUREKA_INSTANCE_HOSTNAME
+              value: "customer-service"
+
+            - name: CUSTOMER_DB_URL
+              value: "jdbc:mysql://mysql:3306/customer_db"
+
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: banking-database-secret
+                  key: MYSQL_PASSWORD
+
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: banking-database-secret
+                  key: JWT_SECRET

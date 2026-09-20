@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+  namespace: enterprise-bank
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: auth-service
+
+  template:
+    metadata:
+      labels:
+        app: auth-service
+
+    spec:
+      containers:
+        - name: auth-service
+          image: enterprise-bank/auth-service:1.0
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 8081
+
+          env:
+            - name: CONFIG_SERVER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-common-config
+                  key: CONFIG_SERVER_URL
+
+            - name: EUREKA_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-common-config
+                  key: EUREKA_SERVER_URL
+
+            - name: EUREKA_INSTANCE_HOSTNAME
+              value: "auth-service"
+
+            - name: AUTH_DB_URL
+              value: "jdbc:mysql://mysql:3306/auth_db"
+
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: banking-database-secret
+                  key: MYSQL_PASSWORD
+
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: banking-database-secret
+                  key: JWT_SECRET

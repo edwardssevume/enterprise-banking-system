@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-init-config
+  namespace: enterprise-bank
+
+data:
+  init.sql: |
+    CREATE DATABASE IF NOT EXISTS account_db;
+    CREATE DATABASE IF NOT EXISTS audit_db;
+    CREATE DATABASE IF NOT EXISTS auth_db;
+    CREATE DATABASE IF NOT EXISTS customer_db;
+    CREATE DATABASE IF NOT EXISTS fraud_db;
+    CREATE DATABASE IF NOT EXISTS notification_db;
+    CREATE DATABASE IF NOT EXISTS transaction_db;
