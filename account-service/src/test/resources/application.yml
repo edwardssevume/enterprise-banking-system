@@ -25,9 +25,9 @@ eureka:
 
 security:
   jwt:
-    secret: "REDACTED_HISTORICAL_TEST_SECRET"
+    secret: "${TEST_JWT_SECRET:yK8e+qYf3xf2TqPVQukXf0+SMa9Krer8Z0Ks9LkHFZpb/3FKUJhu3p9e3fi/DFny}"
     issuer: "enterprise-banking-auth-service"
 
 internal:
   service:
-    secret: "test-internal-service-secret"
+    secret: "${TEST_INTERNAL_SERVICE_SECRET:local-test-only-internal-service-key-do-not-use-in-production-2026}"

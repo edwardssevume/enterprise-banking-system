@@ -32,5 +32,5 @@ eureka:
     fetch-registry: false
 
 jwt:
-  secret: "REDACTED_HISTORICAL_TEST_SECRET"
+  secret: "${TEST_JWT_SECRET:yK8e+qYf3xf2TqPVQukXf0+SMa9Krer8Z0Ks9LkHFZpb/3FKUJhu3p9e3fi/DFny}"
   issuer: "enterprise-banking-auth-service"
