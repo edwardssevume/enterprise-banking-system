@@ -19,8 +19,8 @@ spec:
     spec:
       containers:
         - name: transaction-service
-          image: enterprise-bank/transaction-service:1.0
-          imagePullPolicy: IfNotPresent
+          image: 783772617204.dkr.ecr.ca-central-1.amazonaws.com/enterprise-bank/transaction-service:1.0
+          imagePullPolicy: Always
 
           ports:
             - containerPort: 8084

@@ -19,8 +19,8 @@ spec:
     spec:
       containers:
         - name: api-gateway
-          image: enterprise-bank/api-gateway:1.0
-          imagePullPolicy: IfNotPresent
+          image: 783772617204.dkr.ecr.ca-central-1.amazonaws.com/enterprise-bank/api-gateway:1.0
+          imagePullPolicy: Always
 
           ports:
             - containerPort: 8080

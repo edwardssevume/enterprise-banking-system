@@ -1,0 +1,16 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: enterprise-bank-eks
+  region: ca-central-1
+  version: "1.36"
+
+managedNodeGroups:
+  - name: enterprise-bank-nodes
+    instanceType: t3.large
+    desiredCapacity: 2
+    minSize: 2
+    maxSize: 2
+    volumeSize: 30
+    privateNetworking: true

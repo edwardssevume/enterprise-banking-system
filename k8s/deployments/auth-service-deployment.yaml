@@ -19,8 +19,8 @@ spec:
     spec:
       containers:
         - name: auth-service
-          image: enterprise-bank/auth-service:1.0
-          imagePullPolicy: IfNotPresent
+          image: 783772617204.dkr.ecr.ca-central-1.amazonaws.com/enterprise-bank/auth-service:1.0
+          imagePullPolicy: Always
 
           ports:
             - containerPort: 8081
